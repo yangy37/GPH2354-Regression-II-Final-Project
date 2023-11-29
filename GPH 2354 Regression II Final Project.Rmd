@@ -5,12 +5,77 @@ date: "2023-11-26"
 output: html_document
 ---
 Package may use in the project
-```{r}
+```{r, message=FALSE}
 library(pander)
+library(ggplot2)
+library(moments)
+library(tidyverse)
+library(psych)
+library(rio)
+library(MASS)
+library(ResourceSelection)
+library(car)
 ```
 
 Upload Data from Excel File
 ```{r}
 my_data <- read.csv("MIDUS_III_Final_Exam_Fall2023_data.csv")
+#Show the first six rows of data set. 
 pander(head(my_data))
+
+my_data %>%
+  keep(is.numeric) %>% 
+  gather() %>% 
+  ggplot(aes(value)) +
+    facet_wrap(~ key, scales = "free") +
+    geom_histogram(col = 'orange')
+
+#Show the distribution of data set. 
+pander(skewness(my_data), caption = 'Skewness of numeric data')
+```
+
+Case1
+
+For the first study, you will build a predictive model for predicting if people in their midlife have ever experienced heart trouble (outcome variable). 
+Step 1: select the correct model based on the distribution of the outcome variable. You might consider the following independent variables (bp, smoke, age, male, and exercise) as potential predictors. 
+In step 2, you will run the model with the interaction term between smoke and male, controlling for the other variables. 
+In step 3, you will assess if each model is a good fit for the data and which model (the main effects or interaction effect model) is better. Remember data cleaning and checking for potential outliers that might influence the estimates in the model is one of the major steps in statistical analysis. (NOTE: DO NOT DELETE ANY OUTLIERS, NOTE AND EVALUATE THEM).
+```{r}
+#Step 1
+my_data_1 <- my_data %>% dplyr::select(heart, bp, smoke, age, male, exercise);
+model_1 <- glm(heart ~ bp + smoke + age + male + exercise, family = binomial, data = my_data_1);
+summary(model_1)
+
+#Step 2
+model_1_2 <- glm(heart ~ bp + smoke + age + male + exercise + smoke * male, family = binomial, data = my_data_1);
+summary(model_1_2)
+
+#Step 3
+exp(cbind(OR = coef(model_1), confint(model_1)))
+exp(cbind(OR = coef(model_1_2), confint(model_1_2)))
+
+anova(model_1)
+anova(model_1_2)
+question1 <- hoslem.test(model_1$y, model_1_2$fitted.values, g=5)
+question1
+```
+
+Case2
+For the second case study, build a predictive model using a self-rated health category for individuals in their midlife as an outcome variable. Select the correct model based on the distribution of the outcome variable. 
+In step 1, you will fit and conduct the main effects model with the variables depress, alcage, cigage, age, and bp. 
+In step 2, you will test any relevant assumptions. 
+In step 3 [2 bonus points], predict probabilities for those with diagnosed high blood pressure if (1) age = 64 and depress = 0, and (2) if age = 64 and depress = 1. Report the difference in probabilities per group (i.e., excellent, good, fair, poor).
+```{r}
+#Step 1
+my_data_2 <- my_data %>% dplyr::select( health, depress, alcage, cigage, age, bp);
+var_2 <- sapply(my_data_2, var, na.rm = TRUE);
+mean_2 <- sapply(my_data_2, mean, na.rm = TRUE);
+df_2 <- data.frame(Mean = mean_2, Variance = var_2);
+pander(df_2);
+
+model <- glm(health ~ depress + alcage + cigage + age + bp, family = poisson, data = my_data_2);
+summary(model);
+
+#Step 2
+
 ```
