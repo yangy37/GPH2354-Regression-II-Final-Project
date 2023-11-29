@@ -2,10 +2,12 @@
 title: "Regression II Final Project"
 author: "Yi Yang"
 date: "2023-11-26"
-output: html_document
+output:
+  pdf_document: default
+  html_document: default
 ---
 Package may use in the project
-```{r, message=FALSE}
+```{r, message=FALSE, warning=FALSE}
 library(pander)
 library(ggplot2)
 library(moments)
@@ -54,10 +56,9 @@ summary(model_1_2)
 exp(cbind(OR = coef(model_1), confint(model_1)))
 exp(cbind(OR = coef(model_1_2), confint(model_1_2)))
 
-anova(model_1)
-anova(model_1_2)
-question1 <- hoslem.test(model_1$y, model_1_2$fitted.values, g=5)
-question1
+anova(model_1,model_1_2)
+hoslem_1 <- hoslem.test(model_1$y, model_1_2$fitted.values, g=5)
+hoslem_1
 ```
 
 Case2
