@@ -1,6 +1,6 @@
 ---
-title: "Regression II Final Project"
-author: "Yi Yang"
+title: "Regression II Final Project Group 1M"
+author: "Yingzhi Ma, Guanyu Lu, Yi Yang"
 date: "2023-11-26"
 output:
   pdf_document: default
@@ -18,6 +18,7 @@ library(MASS)
 library(ResourceSelection)
 library(car)
 library(VGAM)
+library(pROC)
 ```
 
 Upload Data from Excel File
@@ -46,11 +47,13 @@ In step 3, you will assess if each model is a good fit for the data and which mo
 ```{r}
 #Step 1
 my_data_1 <- my_data %>% dplyr::select(heart, bp, smoke, age, male, exercise);
-model_1 <- glm(heart ~ bp + smoke + age + male + exercise, family = binomial, data = my_data_1);
+model_1 <- glm(heart ~ bp + smoke + age + male + exercise, 
+               family = binomial, data = my_data_1);
 summary(model_1);
 
 #Step 2
-model_1_2 <- glm(heart ~ bp + smoke + age + male + exercise + smoke * male, family = binomial, data = my_data_1);
+model_1_2 <- glm(heart ~ bp + smoke + age + male + exercise + smoke * male, 
+                 family = binomial, data = my_data_1);
 summary(model_1_2);
 
 #Step 3
@@ -60,8 +63,16 @@ exp(cbind(OR = coef(model_1_2), confint(model_1_2)));
 anova(model_1,model_1_2);
 hoslem_1 <- hoslem.test(model_1$y, model_1_2$fitted.values, g=5);
 hoslem_1;
-pander(c("Model 1 AIC" = AIC(model_1), "Model 2 AIC" = AIC(model_1_2), 
-         "Model 1 BIC" = BIC(model_1), "Model 2 BIC" = BIC(model_1_2)));
+pander(c("Model_1 AIC" = AIC(model_1), "Model_1_2 AIC" = AIC(model_1_2), 
+         "Model_1 BIC" = BIC(model_1), "Model_1_2 BIC" = BIC(model_1_2)));
+
+# Plot ROC curves
+rocplot1 <- roc(heart~fitted(model_1), data=my_data_1);
+plot.roc(rocplot1, legacy.axes=TRUE);
+rocplot2 <- roc(heart~fitted(model_1_2), data=my_data_1);
+plot.roc(rocplot2, legacy.axes=TRUE);
+pander(c("Model_1 AUC" = auc(my_data_1$heart, model_1$fitted.values), 
+         "Model_1_2 AUC" = auc(my_data_1$heart, model_1_2$fitted.values)));
 ```
 
 Case2
@@ -73,7 +84,8 @@ In step 3 [2 bonus points], predict probabilities for those with diagnosed high 
 # this is a cumulative logit model for ordinal response. 
 my_data_2 <- my_data %>% dplyr::select(health, depress, alcage, cigage, age, bp);
 #Step 1
-model_2 <- vglm(health ~ depress + alcage + cigage + age + bp, family = cumulative(parallel=TRUE), data = my_data_2);
+model_2 <- vglm(factor(health) ~ depress + alcage + cigage + age + bp, 
+                family = cumulative(parallel=TRUE), data = my_data_2);
 summary(model_2);
 
 #Step 2
@@ -82,7 +94,7 @@ fit_rr<-exp(coefficients(model_2));
 fit_rr;
 
 #Step 3
-my_data_2_3 <- my_data_2 %>% filter(age == 64);
-model_2_3 <- vglm(health ~ depress, family = cumulative(parallel=TRUE), data = my_data_2_3);
+my_data_2_3 <- my_data_2 %>% filter(age == 64) %>% filter(bp == 1);
+model_2_3 <- vglm(factor(health) ~ depress, family = cumulative(parallel=TRUE), data = my_data_2_3);
 summary(model_2_3);
 ```
