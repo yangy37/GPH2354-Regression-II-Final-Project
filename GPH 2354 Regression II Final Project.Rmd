@@ -17,6 +17,7 @@ library(rio)
 library(MASS)
 library(ResourceSelection)
 library(car)
+library(VGAM)
 ```
 
 Upload Data from Excel File
@@ -46,19 +47,21 @@ In step 3, you will assess if each model is a good fit for the data and which mo
 #Step 1
 my_data_1 <- my_data %>% dplyr::select(heart, bp, smoke, age, male, exercise);
 model_1 <- glm(heart ~ bp + smoke + age + male + exercise, family = binomial, data = my_data_1);
-summary(model_1)
+summary(model_1);
 
 #Step 2
 model_1_2 <- glm(heart ~ bp + smoke + age + male + exercise + smoke * male, family = binomial, data = my_data_1);
-summary(model_1_2)
+summary(model_1_2);
 
 #Step 3
-exp(cbind(OR = coef(model_1), confint(model_1)))
-exp(cbind(OR = coef(model_1_2), confint(model_1_2)))
+exp(cbind(OR = coef(model_1), confint(model_1)));
+exp(cbind(OR = coef(model_1_2), confint(model_1_2)));
 
-anova(model_1,model_1_2)
-hoslem_1 <- hoslem.test(model_1$y, model_1_2$fitted.values, g=5)
-hoslem_1
+anova(model_1,model_1_2);
+hoslem_1 <- hoslem.test(model_1$y, model_1_2$fitted.values, g=5);
+hoslem_1;
+pander(c("Model 1 AIC" = AIC(model_1), "Model 2 AIC" = AIC(model_1_2), 
+         "Model 1 BIC" = BIC(model_1), "Model 2 BIC" = BIC(model_1_2)));
 ```
 
 Case2
@@ -67,16 +70,19 @@ In step 1, you will fit and conduct the main effects model with the variables de
 In step 2, you will test any relevant assumptions. 
 In step 3 [2 bonus points], predict probabilities for those with diagnosed high blood pressure if (1) age = 64 and depress = 0, and (2) if age = 64 and depress = 1. Report the difference in probabilities per group (i.e., excellent, good, fair, poor).
 ```{r}
+# this is a cumulative logit model for ordinal response. 
+my_data_2 <- my_data %>% dplyr::select(health, depress, alcage, cigage, age, bp);
 #Step 1
-my_data_2 <- my_data %>% dplyr::select( health, depress, alcage, cigage, age, bp);
-var_2 <- sapply(my_data_2, var, na.rm = TRUE);
-mean_2 <- sapply(my_data_2, mean, na.rm = TRUE);
-df_2 <- data.frame(Mean = mean_2, Variance = var_2);
-pander(df_2);
-
-model <- glm(health ~ depress + alcage + cigage + age + bp, family = poisson, data = my_data_2);
-summary(model);
+model_2 <- vglm(health ~ depress + alcage + cigage + age + bp, family = cumulative(parallel=TRUE), data = my_data_2);
+summary(model_2);
 
 #Step 2
+#Relative Odd Ratio
+fit_rr<-exp(coefficients(model_2));
+fit_rr;
 
+#Step 3
+my_data_2_3 <- my_data_2 %>% filter(age == 64);
+model_2_3 <- vglm(health ~ depress, family = cumulative(parallel=TRUE), data = my_data_2_3);
+summary(model_2_3);
 ```
