@@ -19,6 +19,7 @@ library(ResourceSelection)
 library(car)
 library(VGAM)
 library(pROC)
+library(lmtest)
 ```
 
 Upload Data from Excel File
@@ -55,6 +56,8 @@ summary(model_1);
 model_1_2 <- glm(heart ~ bp + smoke + age + male + exercise + smoke * male, 
                  family = binomial, data = my_data_1);
 summary(model_1_2);
+#Likelihood Ratio Test
+lrtest(model_1, model_1_2);
 
 #Step 3
 exp(cbind(OR = coef(model_1), confint(model_1)));
@@ -97,4 +100,13 @@ fit_rr;
 my_data_2_3 <- my_data_2 %>% filter(age == 64) %>% filter(bp == 1);
 model_2_3 <- vglm(factor(health) ~ depress, family = cumulative(parallel=TRUE), data = my_data_2_3);
 summary(model_2_3);
+result <- predict(model_2_3, my_data_2_3, type="response");
+
+not_equal_to_1_indices <- c()
+for (i in nrow(result)) {
+  if (sum(result[i,]) != 1) {
+    not_equal_to_1_indices <- c(not_equal_to_1_indices, i)
+  }
+}
+not_equal_to_1_indices
 ```
