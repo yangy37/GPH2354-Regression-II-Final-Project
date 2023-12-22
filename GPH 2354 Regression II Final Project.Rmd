@@ -22,7 +22,7 @@ library(pROC)
 library(lmtest)
 ```
 
-Upload Data from Excel File
+# Upload Data from Excel File
 ```{r}
 my_data <- read.csv("MIDUS_III_Final_Exam_Fall2023_data.csv")
 #Show the first six rows of data set. 
@@ -37,7 +37,203 @@ my_data %>%
 
 #Show the distribution of data set. 
 pander(skewness(my_data), caption = 'Skewness of numeric data')
+
+# Check Correlation
+cor <- cor(my_data);
+pander(cor);
 ```
+# Univariate Analysis
+```{r}
+# Continuous Variables
+cont_var <- my_data %>% dplyr::select(age, cigage, alcage)
+summary(cont_var)
+
+# Categorical Variables
+# List of categorical variables
+cat.var.Final <- c("male", "heart", "smoke", "depress", "bp", "exercise", "health")
+
+# Loop through each categorical variable and print its percentage frequency table
+for (var in cat.var.Final) {
+  cat("\nPercentage Frequency table for", var, ":\n")
+  freq.table <- table(my_data[[var]])
+  perc.table <- round((freq.table / sum(freq.table)) * 100, 2) # calculate percentages and round off to 2 decimal places
+  pander(freq.table)
+  pander(perc.table)
+}
+```
+
+
+# Bivariate Analysis
+```{r}
+# Case 1
+## T - Test for Continuous Predictors
+t.test(my_data$heart,my_data$alcage)
+t.test(my_data$heart,my_data$cigage)
+t.test(my_data$heart,my_data$age)
+
+# Calculating mean and SD for each continuous predictor within 
+# each category of 'heart' for 'age'
+age_stat <- my_data %>%
+  group_by(heart) %>%
+  summarise(
+    Mean_Age = mean(age, na.rm = TRUE), 
+    SD_Age = sd(age, na.rm = TRUE)
+  )
+print(age_stat)
+
+# for 'cigage'
+cigage_stat <- my_data %>%
+  group_by(heart) %>%
+  summarise(
+    Mean_Cigage = mean(cigage, na.rm = TRUE), 
+    SD_Cigage = sd(cigage, na.rm = TRUE)
+  )
+print(cigage_stat)
+
+# for 'alcage'
+alcage_stat <- my_data %>%
+  group_by(heart) %>%
+  summarise(
+    Mean_Alcage = mean(alcage, na.rm = TRUE), 
+    SD_Alcage = sd(alcage, na.rm = TRUE)
+  )
+print(alcage_stat)
+```
+
+```{r}
+## Chi-Squared Tests for Categorical Predictors
+### Loop through each categorical predictor and create a contingency table with 'heart'
+for (predictor in cat.var.Final) {
+  cat("\nContingency table for", predictor, "and heart:\n")
+  conti.table.1 <- table(my_data[[predictor]], my_data$heart)
+  perc.conti.table.1 <- prop.table(conti.table.1, margin = 2) * 100
+  chi.squared.test.1 <- chisq.test(conti.table.1)
+  print(chi.squared.test.1)
+  print(conti.table.1)
+  print(perc.conti.table.1)
+}
+```
+
+```{r}
+# Case 2
+## Logistic Regression for Continuous Predictors
+# T - Test for Continuous Predictors with 'health' as Outcome
+t.test(my_data$health,my_data$alcage)
+t.test(my_data$health,my_data$cigage)
+t.test(my_data$health,my_data$age)
+
+# Calculating mean and SD for each continuous predictor within each category of 'health'
+# for 'age'
+age_stat_2 <- my_data %>%
+  group_by(health) %>%
+  summarise(
+    Mean_Age = mean(age, na.rm = TRUE), 
+    SD_Age = sd(age, na.rm = TRUE)
+  )
+print("Age statistics by health categories:")
+print(age_stat_2)
+
+# for 'cigage'
+cigage_stat_2 <- my_data %>%
+  group_by(health) %>%
+  summarise(
+    Mean_Cigage = mean(cigage, na.rm = TRUE), 
+    SD_Cigage = sd(cigage, na.rm = TRUE)
+  )
+print("Cigage statistics by health categories:")
+print(cigage_stat_2)
+
+# for 'alcage'
+alcage_stat_2 <- my_data %>%
+  group_by(health) %>%
+  summarise(
+    Mean_Alcage = mean(alcage, na.rm = TRUE), 
+    SD_Alcage = sd(alcage, na.rm = TRUE)
+  )
+print("Alcage statistics by health categories:")
+print(alcage_stat_2)
+```
+
+```{r}
+## Chi-Squared Tests for Categorical Predictors
+# Loop through each categorical predictor and conduct a Chi-squared test with 'health'
+for (predictor in cat.var.Final) {
+  cat("\nContingency table for", predictor, "and health:\n")
+  conti.table.2 <- table(my_data[[predictor]], my_data$health)
+  perc.conti.table.2 <- prop.table(conti.table.2, margin = 2) * 100
+  chi.squared.test.2 <- chisq.test(conti.table.2)
+  print(chi.squared.test.2)
+  print(conti.table.2)
+  print(perc.conti.table.2)
+}
+```
+
+
+# Assumptions
+```{r warning=FALSE}
+# Checking for outliers in continuous variables
+cont_var_long <- pivot_longer(my_data, cols = c(age, cigage, alcage), 
+                                    names_to = "variable", values_to = "value") 
+
+## Create boxplots for age, cigage, and alcage
+ggplot(cont_var_long, aes(x = variable, y = value)) + 
+    geom_boxplot() +
+    theme_minimal() +
+    ggtitle("Boxplots for Continuous Variables") +
+    xlab("Variable") +
+    ylab("Value")
+
+# Checking for data consistency
+summary(cont_var)
+
+# Checking for Multicollinearity
+## Correlation matrix for 'age', 'cigage', and 'alcage'
+cor <- cor(my_data[c("age", "cigage", "alcage")])
+print(cor)
+
+
+my_data_2_3 <- my_data %>% filter(age == 64) %>% filter(bp == 1);
+## Standardization for Continuous Variables in case there are multicollinearity
+my_data$age <- scale(my_data$age)
+my_data$cigage <- scale(my_data$cigage)
+my_data$alcage <- scale(my_data$alcage)
+
+## Case 1
+### Use Linear model as a proxy 
+linear_model_assump <- lm(heart ~ age + cigage + alcage + as.factor(male) + 
+                              as.factor(smoke) + as.factor(depress) + 
+                              as.factor(bp) + as.factor(exercise), data = my_data)
+pander(vif(linear_model_assump))
+
+## Homoscedasticity
+plot(linear_model_assump, which = 1)
+
+# Normality of Residuals
+qqnorm(residuals(linear_model_assump))
+qqline(residuals(linear_model_assump))
+
+# Independence of Errors
+dwtest(linear_model_assump)
+
+## Case 2
+### Use Linear model as a proxy 
+linear_model_assump_2 <- lm(as.numeric(health) ~ age + cigage + 
+                              alcage + as.factor(male) + as.factor(smoke) + 
+                              as.factor(depress) + as.factor(bp) + 
+                              as.factor(exercise), data = my_data)
+pander(vif(linear_model_assump_2))
+
+## Homoscedasticity
+plot(linear_model_assump_2, which = 1)
+
+# Normality of Residuals
+qqnorm(residuals(linear_model_assump_2))
+qqline(residuals(linear_model_assump_2))
+
+# Independence of Errors
+dwtest(linear_model_assump_2)
+```
+
 
 Case1
 
@@ -45,31 +241,76 @@ For the first study, you will build a predictive model for predicting if people 
 Step 1: select the correct model based on the distribution of the outcome variable. You might consider the following independent variables (bp, smoke, age, male, and exercise) as potential predictors. 
 In step 2, you will run the model with the interaction term between smoke and male, controlling for the other variables. 
 In step 3, you will assess if each model is a good fit for the data and which model (the main effects or interaction effect model) is better. Remember data cleaning and checking for potential outliers that might influence the estimates in the model is one of the major steps in statistical analysis. (NOTE: DO NOT DELETE ANY OUTLIERS, NOTE AND EVALUATE THEM).
-```{r}
-#Step 1
+```{r, warning=FALSE, message=FALSE}
+# Step 1
 my_data_1 <- my_data %>% dplyr::select(heart, bp, smoke, age, male, exercise);
-model_1 <- glm(heart ~ bp + smoke + age + male + exercise, 
+
+#Backward and forward Model selection
+backwards <- step(glm(factor(heart) ~ factor(bp) + factor(smoke) + age + 
+                        factor(male) + factor(exercise), 
+                     family = binomial,
+                     data = my_data_1)); # Backwards selection is the default
+summary(backwards);
+forward <- step(backwards,
+                scope = list(lower = formula(backwards),
+                upper = formula(backwards)),
+                direction = "forward");
+formula(forward);
+
+model_1 <- glm(factor(heart) ~ factor(bp) + factor(smoke) + age + factor(male), 
                family = binomial, data = my_data_1);
 summary(model_1);
+# Check Correlation for Continuous variable
+vif_1 <- car::vif(model_1);
+vif_1;
 
 #Step 2
-model_1_2 <- glm(heart ~ bp + smoke + age + male + exercise + smoke * male, 
-                 family = binomial, data = my_data_1);
+#Backward and forward Model selection
+backwards_2 <- step(glm(factor(heart) ~ factor(bp) + factor(smoke) + age + 
+                          factor(male) + factor(exercise) + smoke * male, 
+                     family = binomial,
+                     data = my_data_1)); # Backwards selection is the default
+summary(backwards_2);
+forward_2 <- step(backwards_2,
+                scope = list(lower = formula(backwards_2),
+                upper = formula(backwards_2)),
+                direction = "forward");
+formula(forward_2);
+model_1_2 <- glm(factor(heart) ~ factor(bp) + factor(smoke) + age + 
+                   factor(male) + factor(smoke) * factor(male), 
+               family = binomial, data = my_data_1);
 summary(model_1_2);
 #Likelihood Ratio Test
 lrtest(model_1, model_1_2);
+```
 
+```{r}
 #Step 3
+## Odds Ratios and Confidence Intervals
 exp(cbind(OR = coef(model_1), confint(model_1)));
 exp(cbind(OR = coef(model_1_2), confint(model_1_2)));
 
-anova(model_1,model_1_2);
-hoslem_1 <- hoslem.test(model_1$y, model_1_2$fitted.values, g=5);
-hoslem_1;
 pander(c("Model_1 AIC" = AIC(model_1), "Model_1_2 AIC" = AIC(model_1_2), 
          "Model_1 BIC" = BIC(model_1), "Model_1_2 BIC" = BIC(model_1_2)));
 
-# Plot ROC curves
+## ANOVA Comparison
+anova(model_1, model_1_2)
+
+## 1- chisq probability
+### Basic Model
+pander(c(1 - pchisq(model_1$deviance, model_1$df.residual), 1 - pchisq(model_1_2$deviance, model_1_2$df.residual)))
+
+
+## Hosmer-Lemeshow Test
+### Basic Model
+ht_model_1 <- hoslem.test(model_1$y, fitted(model_1), g = 10)
+ht_model_1
+
+### Interaction Model
+ht_model_1_2 <- hoslem.test(model_1_2$y, fitted(model_1_2), g = 10)
+ht_model_1_2
+
+# Plot ROC curves and AUC
 rocplot1 <- roc(heart~fitted(model_1), data=my_data_1);
 plot.roc(rocplot1, legacy.axes=TRUE);
 rocplot2 <- roc(heart~fitted(model_1_2), data=my_data_1);
@@ -83,29 +324,53 @@ For the second case study, build a predictive model using a self-rated health ca
 In step 1, you will fit and conduct the main effects model with the variables depress, alcage, cigage, age, and bp. 
 In step 2, you will test any relevant assumptions. 
 In step 3 [2 bonus points], predict probabilities for those with diagnosed high blood pressure if (1) age = 64 and depress = 0, and (2) if age = 64 and depress = 1. Report the difference in probabilities per group (i.e., excellent, good, fair, poor).
-```{r}
+```{r,warning=FALSE}
 # this is a cumulative logit model for ordinal response. 
 my_data_2 <- my_data %>% dplyr::select(health, depress, alcage, cigage, age, bp);
 #Step 1
-model_2 <- vglm(factor(health) ~ depress + alcage + cigage + age + bp, 
+model_2 <- vglm(factor(health) ~ factor(depress) + alcage + cigage + age + factor(bp), 
                 family = cumulative(parallel=TRUE), data = my_data_2);
 summary(model_2);
 
+vif_model <- lm(health ~ depress + alcage + cigage + age + bp, data = my_data_2);
+vif_2 <- vif(vif_model);
+vif_2;
 #Step 2
-#Relative Odd Ratio
-fit_rr<-exp(coefficients(model_2));
-fit_rr;
+## Relative Odd Ratio
+(fit.rr.2.1 <- exp(coefficients(model_2)))
+
+## Consider only the significant variables in the model
+table(my_data_2$health, my_data_2$depress)
+table(my_data_2$health, my_data_2$bp)
+
+#For depress
+odd.ratio.dp1 <- ((77+212+619)*50)/((23+45+40)*913)
+odd.ratio.dp2 <- ((77+212)*(40+50))/((23+45)*(619+913))
+odd.ratio.dp3 <- (77*(50+40+45))/(23*(212+619+913))
+odd.ratio.dp <- odd.ratio.dp1 + odd.ratio.dp2 + odd.ratio.dp3
+
+#For bp
+odd.ratio.bp1 <- ((19+85+281)*382)/((81+172+378)*581)
+odd.ratio.bp2 <- ((19+85)*(382+378))/((81+172)*(581+281))
+odd.ratio.bp3 <- (19*(382+378+172))/(81*(581+281+85))
+odd.ratio.bp <- odd.ratio.bp1 + odd.ratio.bp2 + odd.ratio.bp3
+
+odd.ratio.case2 <- data.frame(
+  'Variable' = c('odd.ratio.dp1', 'odd.ratio.dp2', 'odd.ratio.dp3', 'odd.ratio.dp',  
+                 'odd.ratio.bp1', 'odd.ratio.bp2', 'odd.ratio.bp3', 'odd.ratio.bp'),
+  'Value' = c(odd.ratio.dp1, odd.ratio.dp2, odd.ratio.dp3, odd.ratio.dp, 
+              odd.ratio.bp1, odd.ratio.bp2, odd.ratio.bp3, odd.ratio.bp)
+)
+pander(odd.ratio.case2)
 
 #Step 3
-my_data_2_3 <- my_data_2 %>% filter(age == 64) %>% filter(bp == 1);
-model_2_3 <- vglm(factor(health) ~ depress, family = cumulative(parallel=TRUE), data = my_data_2_3);
-summary(model_2_3);
-result <- predict(model_2_3, my_data_2_3, type="response");
-
-not_equal_to_1_indices <- c()
-for (i in nrow(result)) {
+#my_data_2_3 <- data.frame(depress = c(0, 1), alcage = mean(my_data$alcage, na.rm = TRUE), 
+                      # cigage = mean(my_data$cigage, na.rm = TRUE), age = 64, bp = 1)
+result <- predict(model_2, newdata = my_data_2_3, type = "response");
+not_equal_to_1_indices <- matrix(nrow = nrow(result))
+for (i in 1:nrow(result)) {
   if (sum(result[i,]) != 1) {
-    not_equal_to_1_indices <- c(not_equal_to_1_indices, i)
+    not_equal_to_1_indices[i,] <- i
   }
 }
 not_equal_to_1_indices
